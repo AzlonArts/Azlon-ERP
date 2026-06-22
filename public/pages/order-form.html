@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Entry — Azlon Arts ERP</title>
+<link rel="stylesheet" href="/css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body>
+<nav>
+  <a class="nav-brand" href="/"><span>Azlon</span> Arts ERP</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/orders">Orders</a>
+  </div>
+  <div class="nav-user" id="navUser"></div>
+</nav>
+
+<div class="page-body">
+  <div class="page-header">
+    <div>
+      <h1 id="pageTitle">New Order</h1>
+      <div class="sub" id="orderNoDisplay"></div>
+    </div>
+    <div class="flex-row">
+      <a href="/orders" class="btn btn-ghost">← Back</a>
+      <button class="btn btn-outline" id="saveDraftBtn">Save Draft</button>
+      <button class="btn btn-primary" id="saveBtn">Save Order</button>
+    </div>
+  </div>
+
+  <!-- Invoice Details -->
+  <div class="panel">
+    <h2>Invoice details</h2>
+    <div class="grid cols-4">
+      <div>
+        <label>Invoice No.</label>
+        <input id="invoiceNo" placeholder="e.g. 02 / 26 - 27">
+      </div>
+      <div>
+        <label>Invoice Date</label>
+        <input id="invoiceDate" type="date">
+      </div>
+      <div>
+        <label>Order No. (optional)</label>
+        <input id="orderNoField" placeholder="Buyer's order reference">
+      </div>
+      <div>
+        <label>E-Mail Dated (optional)</label>
+        <input id="emailDated" type="date">
+      </div>
+    </div>
+  </div>
+
+  <!-- Buyer / Consignee -->
+  <div class="panel">
+    <h2>Buyer &amp; Consignee</h2>
+    <div class="grid cols-2">
+      <div>
+        <label>Buyer name <span style="color:var(--danger)">*</span></label>
+        <input id="buyerName" placeholder="e.g. SARL MDS">
+      </div>
+      <div>
+        <label>Currency</label>
+        <select id="currency">
+          <option value="Euro">Euro (€)</option>
+          <option value="US Dollar">US Dollar ($)</option>
+          <option value="Pound Sterling">Pound Sterling (£)</option>
+        </select>
+      </div>
+      <div>
+        <label>Consignee — full name &amp; address (one line each) <span style="color:var(--danger)">*</span></label>
+        <textarea id="consigneeText" rows="5" placeholder="SARL MDS&#10;7A Rue Gutenberg&#10;67120, Duttlenheim&#10;France"></textarea>
+      </div>
+      <div>
+        <label>Buyer (only if different from consignee)</label>
+        <textarea id="buyerText" rows="5" placeholder="Leave blank if same as consignee"></textarea>
+      </div>
+      <div>
+        <label>Country of final destination</label>
+        <input id="countryDest" placeholder="e.g. France">
+      </div>
+    </div>
+  </div>
+
+  <!-- Shipping & Payment -->
+  <div class="panel">
+    <h2>Shipping &amp; payment</h2>
+    <div class="grid cols-3">
+      <div>
+        <label>Port of loading</label>
+        <input id="portLoading" value="Any Indian Port">
+      </div>
+      <div>
+        <label>Port of discharge</label>
+        <input id="portDischarge" placeholder="e.g. Antwerp">
+      </div>
+      <div>
+        <label>Final destination</label>
+        <input id="finalDestination" placeholder="e.g. Antwerp, France">
+      </div>
+      <div>
+        <label>Delivery terms</label>
+        <input id="deliveryTerms" value="FOB By Sea">
+      </div>
+      <div>
+        <label>Payment terms</label>
+        <input id="paymentTerms" placeholder="e.g. LC at 60 Days from the Date of BL">
+      </div>
+      <div>
+        <label>Payment method</label>
+        <input id="paymentMethod" placeholder="e.g. Cash Against Documents">
+      </div>
+      <div>
+        <label>Delivery date</label>
+        <input id="deliveryDate" type="date">
+      </div>
+      <div>
+        <label>Partial shipment</label>
+        <select id="partialShipment">
+          <option>Allowed</option>
+          <option>Not Allowed</option>
+        </select>
+      </div>
+      <div>
+        <label>Transhipment</label>
+        <select id="transhipment">
+          <option>Allowed</option>
+          <option>Not Allowed</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <label>Delivery note</label>
+      <input id="deliveryNote" placeholder="e.g. Mid of July 2026">
+    </div>
+    <div style="margin-top:14px;">
+      <label>Quantity variation note</label>
+      <input id="qtyVariationNote" value="Plus / Minus 10% Quantity Variation per Design and Colours are acceptable">
+    </div>
+  </div>
+
+  <!-- Product Lines -->
+  <div class="panel">
+    <h2>Product lines</h2>
+    <div id="groupsContainer"></div>
+    <button class="btn btn-outline" id="addGroupBtn" type="button">+ Add style / order reference group</button>
+    <p class="hint" style="margin-top:8px;">Group lines by buyer design reference (e.g. "Noel 01 / 2026"). Each group can have multiple product lines.</p>
+
+    <div class="summary-bar">
+      <div class="totals">
+        Total qty: <b id="totalQty">0</b> &nbsp;&nbsp; Total: <b id="totalAmt">0.00</b> <span id="currLabel"></span>
+      </div>
+      <div class="flex-row">
+        <button class="btn btn-success" id="generatePiBtn" type="button">⬇ Generate PI (PDF)</button>
+        <button class="btn btn-primary" id="saveBtn2" type="button">Save Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/app.js"></script>
+<script>
+// ── State ────────────────────────────────────────────────────────
+const isEditMode = window.location.pathname.includes('/edit');
+const orderId = isEditMode ? window.location.pathname.split('/')[2] : null;
+let gc=0, ic=0;
+const groups=[];
+
+// ── Init ─────────────────────────────────────────────────────────
+(async()=>{
+  await loadNavUser();
+  setActiveNav();
+  document.getElementById('invoiceDate').valueAsDate=new Date();
+
+  if(isEditMode&&orderId){
+    document.getElementById('pageTitle').textContent='Edit Order';
+    const order=await GET(`/api/orders/${orderId}`);
+    populateForm(order);
+  } else {
+    addGroup();
+  }
+})();
+
+function populateForm(order){
+  document.getElementById('pageTitle').textContent=`Edit Order`;
+  document.getElementById('orderNoDisplay').textContent=order.order_no;
+  document.getElementById('invoiceNo').value=order.invoice_no||'';
+  document.getElementById('invoiceDate').value=order.invoice_date||'';
+  document.getElementById('orderNoField').value=order.order_no||'';
+  document.getElementById('emailDated').value=order.email_dated||'';
+  document.getElementById('buyerName').value=order.buyer_name||'';
+  document.getElementById('consigneeText').value=order.consignee_text||'';
+  document.getElementById('buyerText').value=order.buyer_text||'';
+  document.getElementById('countryDest').value=order.country_destination||'';
+  document.getElementById('currency').value=order.currency||'Euro';
+  document.getElementById('portLoading').value=order.port_loading||'Any Indian Port';
+  document.getElementById('portDischarge').value=order.port_discharge||'';
+  document.getElementById('finalDestination').value=order.final_destination||'';
+  document.getElementById('deliveryTerms').value=order.delivery_terms||'FOB By Sea';
+  document.getElementById('paymentTerms').value=order.payment_terms||'';
+  document.getElementById('paymentMethod').value=order.payment_method||'';
+  document.getElementById('deliveryDate').value=order.delivery_date||'';
+  document.getElementById('partialShipment').value=order.partial_shipment||'Allowed';
+  document.getElementById('transhipment').value=order.transhipment||'Allowed';
+  document.getElementById('deliveryNote').value=order.delivery_note||'';
+  document.getElementById('qtyVariationNote').value=order.qty_variation_note||'';
+
+  // Load groups
+  if(order.groups&&order.groups.length){
+    order.groups.forEach(g=>{
+      const gid='g'+(++gc);
+      groups.push({id:gid,name:g.name,items:[]});
+      if(g.items&&g.items.length){
+        const grp=groups[groups.length-1];
+        g.items.forEach(it=>{
+          const iid='i'+(++ic);
+          grp.items.push({id:iid,...it});
+        });
+      }
+    });
+    renderGroups();
+  } else { addGroup(); }
+  updateTotals();
+}
+
+// ── Group / Item management ───────────────────────────────────────
+function addGroup(name=''){
+  const id='g'+(++gc);
+  groups.push({id,name,items:[]});
+  renderGroups();
+  addItem(id);
+}
+
+function addItem(gid){
+  const grp=groups.find(g=>g.id===gid);
+  grp.items.push({id:'i'+(++ic),description:'',packing_detail:'',hs_codes:'',quantity:'',rate:'',unit_label:'Pcs'});
+  renderGroups();
+}
+
+function removeGroup(gid){
+  const idx=groups.findIndex(g=>g.id===gid);
+  if(idx>=0)groups.splice(idx,1);
+  renderGroups();
+}
+
+function removeItem(gid,iid){
+  const grp=groups.find(g=>g.id===gid);
+  const idx=grp.items.findIndex(i=>i.id===iid);
+  if(idx>=0)grp.items.splice(idx,1);
+  renderGroups();
+}
+
+function setGroupName(gid,val){const g=groups.find(g=>g.id===gid);if(g)g.name=val;}
+function setItemField(gid,iid,fld,val){
+  const g=groups.find(g=>g.id===gid);
+  const it=g&&g.items.find(i=>i.id===iid);
+  if(it){it[fld]=val;updateTotals();}
+}
+
+function renderGroups(){
+  const container=document.getElementById('groupsContainer');
+  container.innerHTML='';
+  groups.forEach(grp=>{
+    const block=document.createElement('div');
+    block.className='group-block';
+
+    // Group header row
+    const hdr=document.createElement('div');
+    hdr.className='group-header';
+    const ni=document.createElement('input');
+    ni.placeholder='Style / order reference, e.g. Noel 01 / 2026';
+    ni.value=grp.name;
+    ni.style.fontWeight='600';
+    ni.oninput=e=>setGroupName(grp.id,e.target.value);
+    hdr.appendChild(ni);
+    const db=document.createElement('button');
+    db.className='btn btn-icon btn-danger-outline';
+    db.title='Remove group'; db.textContent='✕';
+    db.onclick=()=>removeGroup(grp.id);
+    hdr.appendChild(db);
+    block.appendChild(hdr);
+
+    // Item col headers (on first item)
+    if(grp.items.length){
+      const ch=document.createElement('div');
+      ch.className='item-grid';
+      ch.style.paddingBottom='0';
+      ch.style.borderTop='none';
+      ['Description','Packing detail','HS Code(s)','Quantity','Rate','Unit',''].forEach(h=>{
+        const l=document.createElement('label');
+        l.textContent=h;
+        l.style.marginBottom='0';
+        ch.appendChild(l);
+      });
+      block.appendChild(ch);
+    }
+
+    // Items
+    grp.items.forEach(item=>{
+      const row=document.createElement('div');
+      row.className='item-grid';
+      row.appendChild(mkInput(item.description,v=>setItemField(grp.id,item.id,'description',v),'e.g. 19 x 26 Cms - Mittens'));
+      row.appendChild(mkInput(item.packing_detail,v=>setItemField(grp.id,item.id,'packing_detail',v),'e.g. 60 Pcs / Ctn x 10 Ctns'));
+      row.appendChild(mkInput(item.hs_codes,v=>setItemField(grp.id,item.id,'hs_codes',v),'62160010'));
+      row.appendChild(mkInput(item.quantity,v=>setItemField(grp.id,item.id,'quantity',v),'0','number'));
+      row.appendChild(mkInput(item.rate,v=>setItemField(grp.id,item.id,'rate',v),'0.00','number'));
+      const unitWrap=document.createElement('div');
+      const sel=document.createElement('select');
+      ['Pcs','Sets','Nos','Pairs'].forEach(u=>{
+        const o=document.createElement('option');
+        o.value=u;o.textContent=u;
+        if(item.unit_label===u)o.selected=true;
+        sel.appendChild(o);
+      });
+      sel.onchange=e=>setItemField(grp.id,item.id,'unit_label',e.target.value);
+      unitWrap.appendChild(sel);
+      row.appendChild(unitWrap);
+      const delBtn=document.createElement('button');
+      delBtn.className='btn btn-icon btn-danger-outline';
+      delBtn.title='Remove line';delBtn.textContent='✕';
+      delBtn.onclick=()=>removeItem(grp.id,item.id);
+      row.appendChild(delBtn);
+      block.appendChild(row);
+    });
+
+    // Group footer
+    const gf=document.createElement('div');
+    gf.className='group-footer';
+    const addBtn=document.createElement('button');
+    addBtn.className='btn btn-outline btn-sm';
+    addBtn.type='button';addBtn.textContent='+ Add line';
+    addBtn.onclick=()=>addItem(grp.id);
+    gf.appendChild(addBtn);
+    const gt=grp.items.reduce((s,it)=>s+(parseFloat(it.quantity)||0)*(parseFloat(it.rate)||0),0);
+    const gtDiv=document.createElement('div');
+    gtDiv.className='group-total';
+    gtDiv.textContent=`Group total: ${fmtAmt(gt)}`;
+    gf.appendChild(gtDiv);
+    block.appendChild(gf);
+    container.appendChild(block);
+  });
+  updateTotals();
+}
+
+function mkInput(value,onChange,placeholder='',type='text'){
+  const wrap=document.createElement('div');
+  const inp=document.createElement('input');
+  inp.type=type;
+  if(type==='number')inp.step='0.01';
+  inp.value=value||'';
+  inp.placeholder=placeholder;
+  inp.oninput=e=>onChange(e.target.value);
+  wrap.appendChild(inp);
+  return wrap;
+}
+
+function updateTotals(){
+  let tq=0,ta=0;
+  groups.forEach(g=>g.items.forEach(it=>{
+    tq+=parseFloat(it.quantity)||0;
+    ta+=(parseFloat(it.quantity)||0)*(parseFloat(it.rate)||0);
+  }));
+  document.getElementById('totalQty').textContent=tq.toLocaleString();
+  document.getElementById('totalAmt').textContent=fmtAmt(ta);
+  const cur=document.getElementById('currency').value;
+  document.getElementById('currLabel').textContent=cur==='Euro'?'€':cur==='US Dollar'?'$':'£';
+}
+
+document.getElementById('addGroupBtn').onclick=()=>addGroup();
+document.getElementById('currency').onchange=updateTotals;
+
+// ── Collect form data ─────────────────────────────────────────────
+function collectData(status='draft'){
+  return {
+    invoice_no: document.getElementById('invoiceNo').value,
+    invoice_date: document.getElementById('invoiceDate').value,
+    order_no: document.getElementById('orderNoField').value,
+    email_dated: document.getElementById('emailDated').value,
+    buyer_name: document.getElementById('buyerName').value,
+    consignee_text: document.getElementById('consigneeText').value,
+    buyer_text: document.getElementById('buyerText').value,
+    country_destination: document.getElementById('countryDest').value,
+    currency: document.getElementById('currency').value,
+    port_loading: document.getElementById('portLoading').value,
+    port_discharge: document.getElementById('portDischarge').value,
+    final_destination: document.getElementById('finalDestination').value,
+    delivery_terms: document.getElementById('deliveryTerms').value,
+    payment_terms: document.getElementById('paymentTerms').value,
+    payment_method: document.getElementById('paymentMethod').value,
+    delivery_date: document.getElementById('deliveryDate').value,
+    partial_shipment: document.getElementById('partialShipment').value,
+    transhipment: document.getElementById('transhipment').value,
+    delivery_note: document.getElementById('deliveryNote').value,
+    qty_variation_note: document.getElementById('qtyVariationNote').value,
+    status,
+    groups: groups.map(g=>({
+      name: g.name,
+      items: g.items.filter(it=>it.description).map(it=>({
+        description: it.description,
+        packing_detail: it.packing_detail,
+        hs_codes: it.hs_codes,
+        quantity: parseFloat(it.quantity)||0,
+        rate: parseFloat(it.rate)||0,
+        unit_label: it.unit_label||'Pcs'
+      }))
+    })).filter(g=>g.items.length>0)
+  };
+}
+
+// ── Save ─────────────────────────────────────────────────────────
+async function save(status){
+  const data=collectData(status);
+  if(!data.buyer_name){showToast('Buyer name is required','error');return;}
+  if(!data.consignee_text){showToast('Consignee address is required','error');return;}
+  try{
+    let result;
+    if(isEditMode&&orderId){
+      result=await PUT(`/api/orders/${orderId}`,data);
+      showToast('Order saved.');
+    } else {
+      result=await POST('/api/orders',data);
+      showToast('Order created!');
+      setTimeout(()=>window.location=`/orders/${result.id}`,1000);
+    }
+  }catch(e){showToast(e.message,'error');}
+}
+
+document.getElementById('saveBtn').onclick=()=>save('confirmed');
+document.getElementById('saveBtn2').onclick=()=>save('confirmed');
+document.getElementById('saveDraftBtn').onclick=()=>save('draft');
+
+// ── Generate PI ───────────────────────────────────────────────────
+document.getElementById('generatePiBtn').onclick=async()=>{
+  const data=collectData();
+  if(!data.groups.length){showToast('Add at least one product line first','error');return;}
+  // Save first, then generate
+  await save(data.status||'confirmed');
+  await generatePI(data);
+};
+</script>
+</body>
+</html>

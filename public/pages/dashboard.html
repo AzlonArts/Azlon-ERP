@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — Azlon Arts ERP</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<nav>
+  <a class="nav-brand" href="/"><span>Azlon</span> Arts ERP</a>
+  <div class="nav-links">
+    <a href="/" class="active">Dashboard</a>
+    <a href="/orders">Orders</a>
+  </div>
+  <div class="nav-user" id="navUser"></div>
+</nav>
+
+<div class="page-body">
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <div class="sub" id="welcomeMsg"></div>
+    </div>
+    <a href="/orders/new" class="btn btn-primary">+ New Order</a>
+  </div>
+
+  <div class="grid cols-4" id="statsGrid" style="margin-bottom:22px;">
+    <div class="panel" style="text-align:center;">
+      <div style="font-family:Arial,sans-serif;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Total Orders</div>
+      <div style="font-size:32px;font-weight:300;" id="statTotal">—</div>
+    </div>
+    <div class="panel" style="text-align:center;">
+      <div style="font-family:Arial,sans-serif;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Draft</div>
+      <div style="font-size:32px;font-weight:300;color:#5a5040;" id="statDraft">—</div>
+    </div>
+    <div class="panel" style="text-align:center;">
+      <div style="font-family:Arial,sans-serif;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Confirmed</div>
+      <div style="font-size:32px;font-weight:300;color:var(--green);" id="statConfirmed">—</div>
+    </div>
+    <div class="panel" style="text-align:center;">
+      <div style="font-family:Arial,sans-serif;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Shipped</div>
+      <div style="font-size:32px;font-weight:300;color:#1a4a7a;" id="statShipped">—</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Recent Orders</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Order No.</th>
+          <th>Buyer</th>
+          <th>Invoice No.</th>
+          <th>Invoice Date</th>
+          <th>Status</th>
+          <th class="num">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="recentOrders">
+        <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--ink-soft);font-family:Arial,sans-serif;font-size:13px;">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+(async()=>{
+  const me=await loadNavUser();
+  if(me) document.getElementById('welcomeMsg').textContent=`Welcome back, ${me.fullName}`;
+  setActiveNav();
+
+  const orders=await GET('/api/orders');
+  const recent=orders.slice(0,8);
+
+  document.getElementById('statTotal').textContent=orders.length;
+  document.getElementById('statDraft').textContent=orders.filter(o=>o.status==='draft').length;
+  document.getElementById('statConfirmed').textContent=orders.filter(o=>o.status==='confirmed').length;
+  document.getElementById('statShipped').textContent=orders.filter(o=>o.status==='shipped').length;
+
+  const tbody=document.getElementById('recentOrders');
+  if(recent.length===0){
+    tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="icon">📋</div><h3>No orders yet</h3><p>Create your first order to get started.</p><a href="/orders/new" class="btn btn-primary">+ New Order</a></div></td></tr>`;
+  } else {
+    tbody.innerHTML=recent.map(o=>`
+      <tr>
+        <td><a href="/orders/${o.id}" style="color:var(--gold-deep);text-decoration:none;font-weight:600;">${o.order_no}</a></td>
+        <td>${o.buyer_name||'—'}</td>
+        <td>${o.invoice_no||'—'}</td>
+        <td>${o.invoice_date?formatDateDMY(o.invoice_date):'—'}</td>
+        <td>${statusBadge(o.status)}</td>
+        <td class="num" style="font-family:Arial,sans-serif;">${o.total_amount?fmtAmt(o.total_amount):'—'}</td>
+        <td><a href="/orders/${o.id}" class="btn btn-ghost btn-sm">View</a></td>
+      </tr>`).join('');
+  }
+})();
+</script>
+</body>
+</html>

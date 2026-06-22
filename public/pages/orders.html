@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orders — Azlon Arts ERP</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<nav>
+  <a class="nav-brand" href="/"><span>Azlon</span> Arts ERP</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/orders">Orders</a>
+  </div>
+  <div class="nav-user" id="navUser"></div>
+</nav>
+
+<div class="page-body">
+  <div class="page-header">
+    <div>
+      <h1>All Orders</h1>
+      <div class="sub" id="orderCount"></div>
+    </div>
+    <div class="flex-row">
+      <select id="statusFilter" class="btn btn-ghost btn-sm" style="width:auto;">
+        <option value="">All statuses</option>
+        <option value="draft">Draft</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="shipped">Shipped</option>
+        <option value="closed">Closed</option>
+      </select>
+      <a href="/orders/new" class="btn btn-primary">+ New Order</a>
+    </div>
+  </div>
+
+  <div class="panel" style="padding:0;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Order No.</th>
+          <th>Buyer</th>
+          <th>Invoice No.</th>
+          <th>Invoice Date</th>
+          <th>Delivery Date</th>
+          <th>Status</th>
+          <th class="num">Lines</th>
+          <th class="num">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ordersBody">
+        <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--ink-soft);font-family:Arial,sans-serif;font-size:13px;">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+let allOrders=[];
+
+async function load(){
+  allOrders=await GET('/api/orders');
+  render();
+}
+
+function render(){
+  const filter=document.getElementById('statusFilter').value;
+  const orders=filter?allOrders.filter(o=>o.status===filter):allOrders;
+  document.getElementById('orderCount').textContent=`${orders.length} order${orders.length!==1?'s':''}`;
+  const tbody=document.getElementById('ordersBody');
+  if(orders.length===0){
+    tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>No orders found</h3><p>${filter?`No ${filter} orders.`:'No orders yet.'}</p>${!filter?`<a href="/orders/new" class="btn btn-primary">+ New Order</a>`:''}</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=orders.map(o=>`
+    <tr>
+      <td><a href="/orders/${o.id}" style="color:var(--gold-deep);font-weight:600;text-decoration:none;">${o.order_no}</a></td>
+      <td>${o.buyer_name||'—'}</td>
+      <td>${o.invoice_no||'—'}</td>
+      <td>${o.invoice_date?formatDateDMY(o.invoice_date):'—'}</td>
+      <td>${o.delivery_date?formatDateDMY(o.delivery_date):'—'}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td class="num">${o.line_count||0}</td>
+      <td class="num" style="font-family:Arial,sans-serif;">${o.total_amount?fmtAmt(o.total_amount):'—'}</td>
+      <td class="flex-row" style="gap:6px;">
+        <a href="/orders/${o.id}" class="btn btn-ghost btn-sm">View</a>
+        <a href="/orders/${o.id}/edit" class="btn btn-outline btn-sm">Edit</a>
+      </td>
+    </tr>`).join('');
+}
+
+loadNavUser().then(()=>setActiveNav());
+document.getElementById('statusFilter').onchange=render;
+load();
+</script>
+</body>
+</html>

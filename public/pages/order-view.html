@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order — Azlon Arts ERP</title>
+<link rel="stylesheet" href="/css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body>
+<nav>
+  <a class="nav-brand" href="/"><span>Azlon</span> Arts ERP</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/orders">Orders</a>
+  </div>
+  <div class="nav-user" id="navUser"></div>
+</nav>
+
+<div class="page-body">
+  <div class="page-header">
+    <div>
+      <h1 id="pageTitle">Order</h1>
+      <div class="sub" id="pageSub"></div>
+    </div>
+    <div class="flex-row">
+      <a href="/orders" class="btn btn-ghost">← Orders</a>
+      <button class="btn btn-outline" id="editBtn">Edit</button>
+      <button class="btn btn-success" id="piBtn">⬇ Generate PI (PDF)</button>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="panel" style="padding:14px 22px;">
+    <div class="flex-row" style="justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div class="flex-row">
+        <span id="statusBadgeEl"></span>
+        <select id="statusSelect" class="btn btn-ghost btn-sm" style="width:auto;">
+          <option value="draft">Draft</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="shipped">Shipped</option>
+          <option value="closed">Closed</option>
+        </select>
+        <button class="btn btn-outline btn-sm" id="updateStatusBtn">Update Status</button>
+      </div>
+      <div style="font-family:Arial,sans-serif;font-size:13px;color:var(--ink-soft);">
+        Created: <span id="createdAt"></span> &nbsp;·&nbsp; Last updated: <span id="updatedAt"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid cols-2">
+    <!-- Left: Order info -->
+    <div>
+      <div class="panel">
+        <h2>Invoice details</h2>
+        <table style="width:100%;font-size:14px;border-collapse:collapse;">
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;width:45%;">Invoice No.</td><td id="dInvoiceNo">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Invoice Date</td><td id="dInvoiceDate">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Order No.</td><td id="dOrderNo">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">E-Mail Dated</td><td id="dEmailDated">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Currency</td><td id="dCurrency">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Delivery Date</td><td id="dDeliveryDate">—</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h2>Shipping &amp; payment</h2>
+        <table style="width:100%;font-size:14px;border-collapse:collapse;">
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;width:45%;">Delivery terms</td><td id="dDeliveryTerms">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Payment terms</td><td id="dPaymentTerms">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Port of loading</td><td id="dPortLoading">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Port of discharge</td><td id="dPortDischarge">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Partial shipment</td><td id="dPartialShipment">—</td></tr>
+          <tr><td style="color:var(--ink-soft);font-family:Arial,sans-serif;font-size:12px;padding:5px 0;">Transhipment</td><td id="dTranshipment">—</td></tr>
+        </table>
+      </div>
+    </div>
+    <!-- Right: Buyer info -->
+    <div>
+      <div class="panel">
+        <h2>Buyer &amp; consignee</h2>
+        <div style="margin-bottom:10px;">
+          <div style="font-family:Arial,sans-serif;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Buyer</div>
+          <div id="dBuyerName" style="font-weight:600;font-size:16px;"></div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div style="font-family:Arial,sans-serif;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Consignee</div>
+          <div id="dConsignee" style="white-space:pre-line;font-size:14px;line-height:1.6;"></div>
+        </div>
+        <div>
+          <div style="font-family:Arial,sans-serif;font-size:11px;color:var(--ink-soft);margin-bottom:3px;">Country of destination</div>
+          <div id="dCountryDest" style="font-size:14px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product lines -->
+  <div class="panel">
+    <h2>Product lines</h2>
+    <div id="linesContainer"></div>
+    <div style="margin-top:14px;padding-top:14px;border-top:2px solid var(--line);display:flex;justify-content:flex-end;gap:40px;font-family:Arial,sans-serif;font-size:14px;">
+      <span>Total quantity: <strong id="totalQty">—</strong></span>
+      <span>Total amount: <strong id="totalAmt">—</strong></span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/app.js"></script>
+<script>
+const orderId=window.location.pathname.split('/')[2];
+let order=null;
+
+(async()=>{
+  await loadNavUser();
+  setActiveNav();
+  order=await GET(`/api/orders/${orderId}`);
+  render(order);
+})();
+
+function render(o){
+  document.getElementById('pageTitle').textContent=o.order_no;
+  document.getElementById('pageSub').textContent=`${o.buyer_name} — ${o.invoice_no||'No invoice no.'}`;
+  document.getElementById('editBtn').onclick=()=>window.location=`/orders/${orderId}/edit`;
+
+  document.getElementById('statusBadgeEl').innerHTML=statusBadge(o.status);
+  document.getElementById('statusSelect').value=o.status;
+  document.getElementById('createdAt').textContent=o.created_at?o.created_at.split('T')[0]:'—';
+  document.getElementById('updatedAt').textContent=o.updated_at?o.updated_at.split('T')[0]:'—';
+
+  document.getElementById('dInvoiceNo').textContent=o.invoice_no||'—';
+  document.getElementById('dInvoiceDate').textContent=o.invoice_date?formatDateDMY(o.invoice_date):'—';
+  document.getElementById('dOrderNo').textContent=o.order_no||'—';
+  document.getElementById('dEmailDated').textContent=o.email_dated?formatDateDMY(o.email_dated):'—';
+  document.getElementById('dCurrency').textContent=o.currency||'—';
+  document.getElementById('dDeliveryDate').textContent=o.delivery_date?formatDateDMY(o.delivery_date):'—';
+  document.getElementById('dDeliveryTerms').textContent=o.delivery_terms||'—';
+  document.getElementById('dPaymentTerms').textContent=o.payment_terms||'—';
+  document.getElementById('dPortLoading').textContent=o.port_loading||'—';
+  document.getElementById('dPortDischarge').textContent=o.port_discharge||'—';
+  document.getElementById('dPartialShipment').textContent=o.partial_shipment||'—';
+  document.getElementById('dTranshipment').textContent=o.transhipment||'—';
+  document.getElementById('dBuyerName').textContent=o.buyer_name||'—';
+  document.getElementById('dConsignee').textContent=o.consignee_text||'—';
+  document.getElementById('dCountryDest').textContent=o.country_destination||'—';
+
+  // Lines
+  let tq=0,ta=0;
+  const container=document.getElementById('linesContainer');
+  container.innerHTML='';
+  (o.groups||[]).forEach(grp=>{
+    const grpDiv=document.createElement('div');
+    grpDiv.style.marginBottom='18px';
+    grpDiv.innerHTML=`<div style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:var(--gold-deep);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">${grp.name||'(no name)'}</div>`;
+    const tbl=document.createElement('table');
+    tbl.className='data-table';
+    tbl.innerHTML=`<thead><tr><th>Description</th><th>Packing detail</th><th>HS Code(s)</th><th class="num">Quantity</th><th>Unit</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>`;
+    const tbody=document.createElement('tbody');
+    (grp.items||[]).forEach(it=>{
+      const q=parseFloat(it.quantity)||0, r=parseFloat(it.rate)||0, a=q*r;
+      tq+=q; ta+=a;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${it.description||''}</td><td>${it.packing_detail||'—'}</td><td>${it.hs_codes||'—'}</td><td class="num">${fmtQty(q)}</td><td>${it.unit_label||'Pcs'}</td><td class="num">${fmtAmt(r)}</td><td class="num"><strong>${fmtAmt(a)}</strong></td>`;
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    grpDiv.appendChild(tbl);
+    container.appendChild(grpDiv);
+  });
+
+  document.getElementById('totalQty').textContent=fmtQty(tq);
+  document.getElementById('totalAmt').textContent=`${fmtAmt(ta)} ${o.currency||''}`;
+}
+
+document.getElementById('updateStatusBtn').onclick=async()=>{
+  const newStatus=document.getElementById('statusSelect').value;
+  await PUT(`/api/orders/${orderId}`,{...order,status:newStatus,groups:order.groups});
+  showToast(`Status updated to ${newStatus}`);
+  document.getElementById('statusBadgeEl').innerHTML=statusBadge(newStatus);
+  order.status=newStatus;
+};
+
+document.getElementById('piBtn').onclick=async()=>{
+  if(!order.groups||!order.groups.length){showToast('No product lines to generate PI from','error');return;}
+  await generatePI(order);
+};
+</script>
+</body>
+</html>
